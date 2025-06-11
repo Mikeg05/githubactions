@@ -78,6 +78,11 @@ jobs:
       contents: read
 
     steps:
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+                
       - name: Download tfplan
         uses: actions/download-artifact@v4
         with:
