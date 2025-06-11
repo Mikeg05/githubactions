@@ -18,9 +18,6 @@ jobs:
     name: Terraform
     runs-on: ubuntu-latest
 
-    environment:
-      name: ${{ inputs.environment }}
-
     permissions:
       id-token: write
       contents: read
@@ -39,6 +36,11 @@ jobs:
           else
             echo "branch=develop" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
 
       - name: Checkout
         uses: actions/checkout@v4
