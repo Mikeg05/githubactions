@@ -44,6 +44,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.env.outputs.branch }}
+          
+      - name: DOCKER
+        run: docker -h
+        
+      - name: pipenv
+        run: pipenv install
 
       - name: Set Terraform working directory
         id: tfdir
