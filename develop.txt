@@ -1,0 +1,99 @@
+name: deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Select the environment to deploy'
+        required: true
+        default: 'develop'
+        type: choice
+        options:
+          - develop
+          - stage
+          - prod
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    environment:
+      name: ${{ inputs.environment }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      tfdir: ${{ steps.tfdir.outputs.dir }}
+
+    steps:
+      - name: Set branch and working dir
+        id: env
+        run: |
+          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+            echo "branch=main" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ inputs.environment }}" == "stage" ]]; then
+            echo "branch=stage" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=develop" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.env.outputs.branch }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.environment == 'prod' && secrets.AWS_ROLE_ARN_PROD || (inputs.environment == 'stage' && secrets.AWS_ROLE_ARN_STAGE || secrets.AWS_ROLE_ARN_DEVELOP) }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set Terraform working directory
+        id: tfdir
+        run: echo "dir=terraform/${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+
+      - name: Terraform Init
+        working-directory: ${{ steps.tfdir.outputs.dir }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ${{ steps.tfdir.outputs.dir }}
+        run: terraform plan -out=tfplan
+
+      - name: Upload tfplan as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ steps.tfdir.outputs.dir }}/tfplan
+
+  terraform-apply:
+    name: Terraform Apply
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+
+    environment:
+      name: ${{ inputs.environment }} 
+      
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download tfplan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ needs.terraform-plan.outputs.tfdir }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.environment == 'prod' && secrets.AWS_ROLE_ARN_PROD || (inputs.environment == 'stage' && secrets.AWS_ROLE_ARN_STAGE || secrets.AWS_ROLE_ARN_DEVELOP) }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Apply
+        working-directory: ${{ needs.terraform-plan.outputs.tfdir }}
+        run: terraform apply -auto-approve tfplan
