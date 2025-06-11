@@ -18,9 +18,6 @@ jobs:
     name: Terraform
     runs-on: ubuntu-latest
 
-    environment:
-      name: ${{ inputs.environment }}
-
     permissions:
       id-token: write
       contents: read
