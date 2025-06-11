@@ -14,7 +14,7 @@ on:
           - prod
 
 jobs:
-  terraform:
+  terraform-plan:
     name: Terraform
     runs-on: ubuntu-latest
 
@@ -44,12 +44,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.env.outputs.branch }}
-
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ inputs.environment == 'prod' && secrets.AWS_ROLE_ARN_PROD || (inputs.environment == 'stage' && secrets.AWS_ROLE_ARN_STAGE || secrets.AWS_ROLE_ARN_DEVELOP) }}
-          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Set Terraform working directory
         id: tfdir
@@ -87,12 +81,6 @@ jobs:
         with:
           name: tfplan
           path: ${{ needs.terraform-plan.outputs.tfdir }}
-
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ inputs.environment == 'prod' && secrets.AWS_ROLE_ARN_PROD || (inputs.environment == 'stage' && secrets.AWS_ROLE_ARN_STAGE || secrets.AWS_ROLE_ARN_DEVELOP) }}
-          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Apply
         working-directory: ${{ needs.terraform-plan.outputs.tfdir }}
