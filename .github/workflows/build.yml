@@ -34,3 +34,37 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pipenv
+          exit 1
+          
+  hello:
+    name: second
+    needs: testing
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }} 
+      
+    steps:
+      - name: list dir
+        run: ls -alt
+
+  notify:
+    needs: [testing, hello]
+    if: failure()
+    runs-on: ubuntu-latest
+      
+    steps:
+      - name: Send failure notification
+        run: |
+          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+            GOOGLE_URL=${{ secrets.WEBHOOK_URL_PROD }}"
+          elif [[ "${{ inputs.environment }}" == "stage" ]]; then
+            GOOGLE_URL=${{ secrets.WEBHOOK_URL_STAGE }}" 
+          else
+            GOOGLE_URL=${{ secrets.WEBHOOK_URL_DEV }}"
+          fi
+
+          curl -X POST "$GOOGLE_URL" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "text": "The pipeline failed in `${{ github.workflow }}` on branch `${{ github.ref }}`."
+          }'
