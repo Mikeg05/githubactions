@@ -51,6 +51,9 @@ jobs:
     needs: [testing, hello]
     if: failure()
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      
     steps:
       - name: Send failure notification
         run: |
