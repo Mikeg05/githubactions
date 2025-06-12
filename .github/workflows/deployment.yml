@@ -65,7 +65,7 @@ jobs:
 
       - name: Set Terraform working directory
         id: tf-dir
-        run: echo "dir=terraform/infrastructure/${{ steps.tf-env.outputs.tfdir }}" >> "$GITHUB_OUTPUT"
+        run: echo "dir=terraform/${{ steps.tf-env.outputs.tfdir }}" >> "$GITHUB_OUTPUT"
 
       - name: Terraform Init
         working-directory: ${{ steps.tf-dir.outputs.dir }}
