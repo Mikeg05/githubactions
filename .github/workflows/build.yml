@@ -56,11 +56,11 @@ jobs:
       - name: Send failure notification
         run: |
           if [[ "${{ inputs.environment }}" == "prod" ]]; then
-            GOOGLE_URL=${{ secrets.WEBHOOK_URL_PROD }}"
+            GOOGLE_URL=${{ secrets.WEBHOOK_URL_PROD }}
           elif [[ "${{ inputs.environment }}" == "stage" ]]; then
-            GOOGLE_URL=${{ secrets.WEBHOOK_URL_STAGE }}" 
+            GOOGLE_URL=${{ secrets.WEBHOOK_URL_STAGE }}
           else
-            GOOGLE_URL=${{ secrets.WEBHOOK_URL_DEV }}"
+            GOOGLE_URL=${{ secrets.WEBHOOK_URL_DEV }}
           fi
 
           curl -X POST "$GOOGLE_URL" \
