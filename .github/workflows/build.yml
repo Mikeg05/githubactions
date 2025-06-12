@@ -53,17 +53,22 @@ jobs:
     runs-on: ubuntu-latest
       
     steps:
-      - name: Send failure notification
+      - name: Set Google Chat Webhook and Send Notification
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          GOOGLE_URL_PROD: ${{ secrets.WEBHOOK_URL_PROD }}
+          GOOGLE_URL_STAGE: ${{ secrets.WEBHOOK_URL_STAGE }}
+          GOOGLE_URL_DEV: ${{ secrets.WEBHOOK_URL_DEV }}
         run: |
-          if [[ "${{ inputs.environment }}" == "prod" ]]; then
-            GOOGLE_URL=${{ secrets.WEBHOOK_URL_PROD }}
-          elif [[ "${{ inputs.environment }}" == "stage" ]]; then
-            GOOGLE_URL=${{ secrets.WEBHOOK_URL_STAGE }}
+          if [[ "$ENVIRONMENT" == "prod" ]]; then
+            GOOGLE_URL="$GOOGLE_URL_PROD"
+          elif [[ "$ENVIRONMENT" == "stage" ]]; then
+            GOOGLE_URL="$GOOGLE_URL_STAGE"
           else
-            GOOGLE_URL=${{ secrets.WEBHOOK_URL_DEV }}
+            GOOGLE_URL="$GOOGLE_URL_DEV"
           fi
 
-          curl -X POST $GOOGLE_URL \
+          curl -X POST "$GOOGLE_URL" \
           -H "Content-Type: application/json" \
           -d '{
             "text": "The pipeline failed in `${{ github.workflow }}` on branch `${{ github.ref }}`."
