@@ -61,23 +61,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.env.outputs.branch }}
-          
-      - name: DOCKER
-        run: docker -h
-        
-      - name: pipenv
-        run: pipenv install
-
-      - name: DOCKER
-        run: docker -h
-
-      - name: Install pipenv
-        run: |
-          python -m pip install --upgrade pip
-          pip install pipenv
       
-      - name: pipenv
-        run: pipenv install
 
       - name: Set Terraform working directory
         id: tf-dir
@@ -110,10 +94,26 @@ jobs:
       contents: read
 
     steps:
+      - name: Set branch
+        id: env
+        run: |
+          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+            echo "branch=main" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ inputs.environment }}" == "stage" ]]; then
+            echo "branch=stage" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=develop" >> "$GITHUB_OUTPUT"
+          fi
+          
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.12.2
+          
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.env.outputs.branch }}
                 
       - name: Download tfplan
         uses: actions/download-artifact@v4
