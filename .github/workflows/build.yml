@@ -6,89 +6,31 @@ on:
       environment:
         description: 'Select the environment to deploy'
         required: true
-        default: 'develop'
+        default: 'development'
         type: choice
         options:
-          - develop
+          - development
           - stage
           - prod
 
+concurrency: ${{ inputs.environment }}
+
 jobs:
-  terraform-plan:
-    name: Terraform
+  testing:
+    name: Test
     runs-on: ubuntu-latest
-
-    permissions:
-      id-token: write
-      contents: read
-
-    outputs:
-      tfdir: ${{ steps.tfdir.outputs.dir }}
-
-    steps:
-      - name: Set branch and working dir
-        id: env
-        run: |
-          if [[ "${{ inputs.environment }}" == "prod" ]]; then
-            echo "branch=main" >> "$GITHUB_OUTPUT"
-          elif [[ "${{ inputs.environment }}" == "stage" ]]; then
-            echo "branch=stage" >> "$GITHUB_OUTPUT"
-          else
-            echo "branch=develop" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.12.2
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.env.outputs.branch }}
-
-      - name: Set Terraform working directory
-        id: tfdir
-        run: echo "dir=terraform/${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
-
-      - name: Terraform Init
-        working-directory: ${{ steps.tfdir.outputs.dir }}
-        run: terraform init
-
-      - name: Terraform Plan
-        working-directory: ${{ steps.tfdir.outputs.dir }}
-        run: terraform plan -out=tfplan
-
-      - name: Upload tfplan as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan
-          path: ${{ steps.tfdir.outputs.dir }}/tfplan
-
-  terraform-apply:
-    name: Terraform Apply
-    needs: terraform-plan
-    runs-on: ubuntu-latest
-
     environment:
       name: ${{ inputs.environment }} 
-      
+
     permissions:
       id-token: write
       contents: read
 
     steps:
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.12.2
-                
-      - name: Download tfplan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
-          path: ${{ needs.terraform-plan.outputs.tfdir }}
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Terraform Apply
-        working-directory: ${{ needs.terraform-plan.outputs.tfdir }}
-        run: terraform apply -auto-approve tfplan
+      - name: Install pipenv
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv

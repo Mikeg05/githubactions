@@ -6,17 +6,21 @@ on:
       environment:
         description: 'Select the environment to deploy'
         required: true
-        default: 'develop'
+        default: 'development'
         type: choice
         options:
-          - develop
+          - development
           - stage
           - prod
+
+concurrency: ${{ inputs.environment }}
 
 jobs:
   terraform-plan:
     name: Terraform
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }} 
 
     permissions:
       id-token: write
@@ -26,7 +30,7 @@ jobs:
       tfdir: ${{ steps.tfdir.outputs.dir }}
 
     steps:
-      - name: Set branch and working dir
+      - name: Set branch
         id: env
         run: |
           if [[ "${{ inputs.environment }}" == "prod" ]]; then
@@ -35,6 +39,17 @@ jobs:
             echo "branch=stage" >> "$GITHUB_OUTPUT"
           else
             echo "branch=develop" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set working dir
+        id: tf-env
+        run: |
+          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+            echo "tfdir=prod" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ inputs.environment }}" == "stage" ]]; then
+            echo "tfdir=stage" >> "$GITHUB_OUTPUT"
+          else
+            echo "tfdir=dev" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install Terraform
@@ -59,22 +74,22 @@ jobs:
         run: pipenv install
 
       - name: Set Terraform working directory
-        id: tfdir
-        run: echo "dir=terraform/${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+        id: tf-dir
+        run: echo "dir=terraform/infrastructure/${{ steps.tf-env.outputs.tfdir }}" >> "$GITHUB_OUTPUT"
 
       - name: Terraform Init
-        working-directory: ${{ steps.tfdir.outputs.dir }}
+        working-directory: ${{ steps.tf-dir.outputs.dir }}
         run: terraform init
 
       - name: Terraform Plan
-        working-directory: ${{ steps.tfdir.outputs.dir }}
+        working-directory: ${{ steps.tf-dir.outputs.dir }}
         run: terraform plan -out=tfplan
 
       - name: Upload tfplan as artifact
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: ${{ steps.tfdir.outputs.dir }}/tfplan
+          path: ${{ steps.tf-dir.outputs.dir }}/tfplan
 
   terraform-apply:
     name: Terraform Apply
