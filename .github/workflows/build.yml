@@ -37,6 +37,7 @@ jobs:
           
   hello:
     name: second
+    needs: testing
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }} 
